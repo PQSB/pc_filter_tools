@@ -98,7 +98,14 @@ def generate_synced_bag(input_bag, output_bag, csv_path):
     # 4. Read the rosbag and filter it
     # -----------------------------
 
-    pbar = tqdm(desc="Filtering rosbag", dynamic_ncols=True)
+    pbar = tqdm(
+        desc="Generating filtered rosbag",
+        dynamic_ncols=True,
+        total=None,
+        mininterval=0.2,
+        smoothing=0.3,
+        unit="msg"
+    )
 
     while reader.has_next():
         topic, data, t = reader.read_next()
@@ -124,7 +131,7 @@ def main():
     parser.add_argument("--out_bag", type=str, required=True, help="Output path")
     args = parser.parse_args()
 
-    generate_synced_bag(args.input_bag, args.out_bag, args.filter_file)
+    generate_synced_bag(args.input_bag, args.out_bag, args.sync_file)
 
     print("Finished generating filtered rosbag.")
 
