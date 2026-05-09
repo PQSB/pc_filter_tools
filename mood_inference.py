@@ -61,7 +61,7 @@ def export_3d_detections(out_dir, img_id, boxes3d, scores, class_ids, pbar):
             f.write(
                 f"{category} "
                 f"{x:.4f} {y:.4f} {z:.4f} "
-                f"{w:.4f} {l:.4f} {h:.4f} {ry:.4f}"
+                f"{w:.4f} {l:.4f} {h:.4f} {ry:.4f} "
                 f"{score:.2f}\n"
             )
 
