@@ -33,15 +33,13 @@ def depth_2_cloud(depth_img, K, organized=False):
     X = (u - cx) * Z / fx
     Y = (v - cy) * Z / fy
 
-    I = np.zeros_like(Z)
-
     if organized:
-        # Oragnized structure (H, W, 4)
-        cloud = np.stack((X, Y, Z, I), axis=-1)
+        # Oragnized structure (H, W, 3)
+        cloud = np.stack((X, Y, Z), axis=-1)
     else:
         # Unorganized structure (N, 4) filtering invalid values
         mask = (Z > 0) & (~np.isnan(Z))
-        cloud = np.column_stack((X[mask], Y[mask], Z[mask], I[mask]))
+        cloud = np.column_stack((X[mask], Y[mask], Z[mask]))
 
     return cloud
 
