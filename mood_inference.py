@@ -10,7 +10,8 @@ from vis4d.data.transforms.resize import ResizeImages, ResizeIntrinsics
 from vis4d.data.transforms.to_tensor import ToTensor
 from vis4d.common.ckpt import load_model_checkpoint
 from vis4d.op.fpp.fpn import FPN
-from vis4d.vis.image.functional import imshow_bboxes3d
+# from vis4d.vis.image.functional import imshow_bboxes3d
+from vis4d.vis.image.functional import draw_bbox3d
 
 from opendet3d.data.transforms.pad import CenterPadImages, CenterPadIntrinsics
 from opendet3d.data.transforms.resize import GenResizeParameters
@@ -64,7 +65,6 @@ def export_3d_detections(out_dir, img_id, boxes3d, scores, class_ids, pbar):
                 f"{w:.4f} {l:.4f} {h:.4f} {ry:.4f} "
                 f"{score:.2f}\n"
             )
-
     # pbar.write(f"[OK] Image {img_id} detections exported to {filepath}")
     return
 
@@ -138,6 +138,7 @@ if __name__ == "__main__":
     parser.add_argument("--intrinsics", type=str, required=True, help="Path to the camera intrinsics file")
     parser.add_argument("--out_detections", type=str, help="Path in which to store the detections")
     parser.add_argument("--out_pointcloud", type=str, help="Path in which to store the generated point clouds")
+    parser.add_argument("--out_images", type=str, help="Path in which to store the images with the 3D bounding boxes")
     parser.add_argument("--prompt", type=str, default="chair.table.person.bin", help="Classes to detect, separated by dots (e.g., Car.Cat)")
     parser.add_argument("--weights", type=str, required=True, help="Path to the model weights")
 
@@ -150,6 +151,7 @@ if __name__ == "__main__":
 
     detect = False
     pointcloud = False
+    images = False
 
     if args.out_detections:
         out_det_root = Path(args.out_detections)
@@ -160,6 +162,11 @@ if __name__ == "__main__":
         out_pc_root = Path(args.out_pointcloud)
         out_pc_root.mkdir(exist_ok=True)
         pointcloud = True
+
+    if args.out_images:
+        out_img_root = Path(args.out_images)
+        out_img_root.mkdir(exist_ok=True)
+        images = True
 
     # Load the Model just once
     model = get_3d_mood_swin_base().to(device)
@@ -242,3 +249,20 @@ if __name__ == "__main__":
 
             export_mood_point_cloud(
                 out_pc_root, img_id, depth_img, intrinsics, pbar)
+
+        if images:
+            out_img_path = os.path.join(out_img_root, f"{img_id}.png")
+
+            # Generate the bounding boxes of the detecions in the image
+            canvas = draw_bbox3d(
+                image=data["original_images"].cpu(),
+                boxes3d=[b.cpu() for b in boxes3d],
+                intrinsics=data["original_intrinsics"].cpu().numpy(),
+                scores=[s.cpu() for s in scores],
+                class_ids=[c.cpu() for c in class_ids],
+                class_id_mapping=class_id_mapping,
+                n_colors=len(class_id_mapping)
+            )
+
+            # Store the image
+            canvas.save_to_disk(out_img_path)
