@@ -62,14 +62,14 @@ def store_topics_times(path, b_topic, t_topics):
 
         if topic == b_topic:
             msg = deserialize_message(data, base_msg_type)
-            time = (msg.header.stamp.sec * 1_000_000_000) + msg.header.stamp.nanosec
-            
+            time = (int(msg.header.stamp.sec) * 1_000_000_000) + int(msg.header.stamp.nanosec)
+
             base_msgs.append((time, base_idx))
             base_idx += 1
 
         elif topic in t_topics:
             msg = deserialize_message(data, target_msg_type[topic])
-            time = (msg.header.stamp.sec * 1_000_000_000) + msg.header.stamp.nanosec
+            time = (int(msg.header.stamp.sec) * 1_000_000_000) + int(msg.header.stamp.nanosec)
 
             target_msgs[topic].append((time, targets_idx[topic]))
             targets_idx[topic] += 1
@@ -142,8 +142,8 @@ def write_pairs(pairs, out_file, b_topic, t_topics):
 
             for t in t_topics:
                 ts_topic, idx_topic = row[t]
-                line.append(ts_topic)
-                line.append(idx_topic)
+                line.append(str(ts_topic))
+                line.append(str(idx_topic))
 
             writer.writerow(line)
 
