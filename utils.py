@@ -24,8 +24,11 @@ def depth_2_cloud(depth_img, K, organized=False):
 
     H, W = depth.shape
 
-    fx, fy = K[0, 0], K[1, 1]
-    cx, cy = K[0, 2], K[1, 2]
+    magic_num = 3
+
+    # Escala de la imagen de color con la imagen derecha 1920/640
+    fx, fy = K[0, 0]*magic_num, K[1, 1]*magic_num
+    cx, cy = K[0, 2]*magic_num, K[1, 2]*magic_num
 
     u, v = np.meshgrid(np.arange(W), np.arange(H))
 
@@ -33,13 +36,18 @@ def depth_2_cloud(depth_img, K, organized=False):
     X = (u - cx) * Z / fx
     Y = (v - cy) * Z / fy
 
+    # Change coordinates to LIDAR system
+    xlidar = Z
+    ylidar = -X
+    zlidar = -Y
+
     if organized:
         # Oragnized structure (H, W, 3)
-        cloud = np.stack((X, Y, Z), axis=-1)
+        cloud = np.stack((xlidar, ylidar, zlidar), axis=-1)
     else:
-        # Unorganized structure (N, 4) filtering invalid values
-        mask = (Z > 0) & (~np.isnan(Z))
-        cloud = np.column_stack((X[mask], Y[mask], Z[mask]))
+        # Unorganized structure (N, 3) filtering invalid values
+        mask = (xlidar > 0) & (~np.isnan(xlidar))
+        cloud = np.column_stack((xlidar[mask], ylidar[mask], zlidar[mask]))
 
     return cloud
 
