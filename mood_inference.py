@@ -32,6 +32,8 @@ from tqdm import tqdm
 
 import argparse
 
+import cv2
+
 from utils import load_intrinsics_from_yaml, depth_2_cloud
 
 def export_3d_detections(out_dir, img_id, boxes3d, scores, class_ids, pbar):
@@ -133,12 +135,13 @@ def get_3d_mood_swin_base(
     )
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Export the detections and point clouds resulting from the inference using 3dmood")
+    parser = argparse.ArgumentParser(description="Export the detections and point clouds resulting from the inference using 3D-MOOD")
     parser.add_argument("--input", type=str, required=True, help="Path to the input images directory")
     parser.add_argument("--intrinsics", type=str, required=True, help="Path to the camera intrinsics file")
     parser.add_argument("--out_detections", type=str, help="Path in which to store the detections")
     parser.add_argument("--out_pointcloud", type=str, help="Path in which to store the generated point clouds")
     parser.add_argument("--out_images", type=str, help="Path in which to store the images with the 3D bounding boxes")
+    parser.add_argument("--depth_images", type=str, help="Path in which to store the depth images calculated by 3D-MOOD")
     parser.add_argument("--prompt", type=str, default="chair.table.person.bin", help="Classes to detect, separated by dots (e.g., Car.Cat)")
     parser.add_argument("--weights", type=str, required=True, help="Path to the model weights")
 
@@ -152,6 +155,7 @@ if __name__ == "__main__":
     detect = False
     pointcloud = False
     images = False
+    depth_images = False
 
     if args.out_detections:
         out_det_root = Path(args.out_detections)
@@ -167,6 +171,11 @@ if __name__ == "__main__":
         out_img_root = Path(args.out_images)
         out_img_root.mkdir(exist_ok=True)
         images = True
+
+    if args.depth_images:
+        out_depth_img_root = Path(args.depth_images)
+        out_depth_img_root.mkdir(exist_ok=True)
+        depth_images = True 
 
     # Load the Model just once
     model = get_3d_mood_swin_base().to(device)
@@ -266,3 +275,16 @@ if __name__ == "__main__":
 
             # Store the image
             canvas.save_to_disk(out_img_path)
+
+        if depth_images:
+            out_depth_img_path = os.path.join(out_depth_img_root, f"{img_id}.png")
+
+            depth_img = depth_maps[0].squeeze().cpu().numpy()
+            depth_in_mm = depth_img * 1000.0
+
+            depth_in_mm = np.clip(depth_in_mm, 0, 65535) 
+
+            # uint16 to export it in mm
+            depth_in_mm = depth_in_mm.astype(np.uint16)
+
+            cv2.imwrite(out_depth_img_path, depth_in_mm)
