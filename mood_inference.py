@@ -25,6 +25,8 @@ from opendet3d.op.detect3d.grounding_dino_3d import (
 )
 from opendet3d.op.fpp.channel_mapper import ChannelMapper
 
+from scipy.spatial.transform import Rotation as R
+
 from pathlib import Path
 import os
 
@@ -34,9 +36,11 @@ import argparse
 
 import cv2
 
-from utils import load_intrinsics_from_yaml, depth_2_cloud
+import sys
 
-def export_3d_detections(out_dir, img_id, boxes3d, scores, class_ids, pbar):
+from utils import load_intrinsics_from_yaml, depth_2_cloud, load_kitti_P2, load_velo2cam, get_cam2_2_lidar_matrix
+
+def export_3d_detections(out_dir, img_id, boxes3d, scores, class_ids, cam2_2_lidar=None):
 
     filepath = os.path.join(out_dir, f"{img_id}.txt")
 
@@ -57,9 +61,31 @@ def export_3d_detections(out_dir, img_id, boxes3d, scores, class_ids, pbar):
 
             # 3D bounding box
             x, y, z, w, l, h, qw, qx, qy, qz = b
-            ry = np.arctan2(2 * (qw * qy + qx * qz), 1 - 2 * (qy**2 + qz**2))
-            # ry [-pi, pi]
-            ry = np.arctan2(np.sin(ry), np.cos(ry))
+
+            if cam2_2_lidar is not None:
+                R_det = R.from_quat([qx, qy, qz, qw]).as_matrix()
+
+                det_2_cam2 = np.eye(4)
+
+                det_2_cam2[:3, :3] = R_det
+                det_2_cam2[:3, 3] = [x, y, z]
+            
+                det_2_lidar = cam2_2_lidar @ det_2_cam2
+
+                x_l, y_l, z_l = det_2_lidar[:3, 3]
+
+                R_lidar = det_2_lidar[:3, :3]
+
+                ry_l = np.arctan2(R_lidar[1, 0], R_lidar[0, 0])
+                ry_l = np.arctan2(np.sin(ry_l), np.cos(ry_l))
+
+                x, y, z = x_l, y_l, z_l
+                ry = ry_l
+
+            else:
+                ry = np.arctan2(2 * (qw * qy + qx * qz), 1 - 2 * (qy**2 + qz**2))
+                # ry [-pi, pi]
+                ry = np.arctan2(np.sin(ry), np.cos(ry))
 
             f.write(
                 f"{category} "
@@ -144,8 +170,22 @@ if __name__ == "__main__":
     parser.add_argument("--depth_images", type=str, help="Path in which to store the depth images calculated by 3D-MOOD")
     parser.add_argument("--prompt", type=str, default="chair.table.person.bin", help="Classes to detect, separated by dots (e.g., Car.Cat)")
     parser.add_argument("--weights", type=str, required=True, help="Path to the model weights")
+    parser.add_argument("--lidar_ref", type=str, help="Path to the file containing the lidar2cam matrix (export detections in LIDAR coordinates)")
 
     args = parser.parse_args()
+
+    cam02velo = None
+
+    if args.lidar_ref:
+        if args.out_detections:
+            velo2cam0 = load_velo2cam(args.lidar_ref)
+            if velo2cam0 is None:
+                print("velo2cam reading failed")
+                sys.exit(1)
+            velo2cam0 = np.vstack((velo2cam0, np.array([0., 0., 0., 1.])))
+            cam02velo = np.linalg.inv(velo2cam0)
+        else:
+            parser.error("--lidar_ref requires --out_detections")
 
     """Demo."""
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -212,7 +252,18 @@ if __name__ == "__main__":
     # Mapping for 3D bounding boxes
     class_id_mapping = {i: text for i, text in enumerate(input_texts)}
 
-    intrinsics = load_intrinsics_from_yaml(args.intrinsics)
+    # intrinsics = load_intrinsics_from_yaml(args.intrinsics)
+    P2 = load_kitti_P2(args.intrinsics)
+
+    if P2 is None:
+        print("P2 reading failed")
+        sys.exit(1)
+
+    intrinsics = P2[:, :3]
+
+    cam2_2_lidar = None
+    if cam02velo is not None:
+        cam2_2_lidar = get_cam2_2_lidar_matrix(P2, cam02velo)
 
     pbar = tqdm(img_paths, desc="3D-MOOD Inference")
 
@@ -251,7 +302,7 @@ if __name__ == "__main__":
 
         if detect:
             export_3d_detections(
-                out_det_root, img_id, boxes3d[0].cpu(),scores[0].cpu(), categories[0], pbar)
+                out_det_root, img_id, boxes3d[0].cpu(),scores[0].cpu(), categories[0], cam2_2_lidar)
 
         if pointcloud:
             depth_img = depth_maps[0].cpu().numpy()
