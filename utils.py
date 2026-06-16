@@ -128,3 +128,45 @@ def export_depth_image(msg, out_dir):
     out_img_path = os.path.join(out_dir, f"{ts}.png")
 
     cv2.imwrite(out_img_path, depth_in_mm)
+
+def load_kitti_P2(calib_path):
+    """Lee el archivo .txt de KITTI y devuelve la matriz P2 completa (3x4) en float32."""
+    with open(calib_path, 'r') as f:
+        for line in f:
+            if line.startswith('P2:'):
+                # Extraer los 12 valores y redimensionar a la matriz de proyección 3x4
+                p2 = np.array([float(x) for x in line.split()[1:]]).reshape(3, 4)
+                return p2.astype(np.float32)
+    return None
+
+def load_velo2cam(calib_file):
+    with open(calib_file, "r") as f:
+        for line in f:
+            line = line.strip()
+
+            if line.startswith("Tr:"):
+                # Si no hay 12 elementos, .reshape(3, 4) lanzará el ValueError automáticamente
+                return np.array([float(v) for v in line.split()[1:]]).reshape(3, 4).astype(np.float32)
+    return None
+
+def get_cam2_2_lidar_matrix(P2, T_cam0_to_lidar):
+    fx = P2[0, 0]
+    fy = P2[1, 1]
+
+    bx = P2[0, 3] / fx
+    by = P2[1, 3] / fy
+    bz = P2[2, 3]
+
+    t2 = np.array([bx, by, bz])
+
+    # construir matriz Cam0 -> Cam2
+    T_cam0_to_cam2 = np.eye(4) # no hay rotación de cam0 a cam2
+    T_cam0_to_cam2[:3, 3] = t2
+
+    # construir matriz Cam2 -> Cam0
+    T_cam2_to_cam0 = np.linalg.inv(T_cam0_to_cam2)
+
+    # Construir matriz global Cam2 -> LIDAR
+    T_cam2_to_lidar = T_cam0_to_lidar @ T_cam2_to_cam0
+
+    return T_cam2_to_lidar
