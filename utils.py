@@ -129,24 +129,21 @@ def export_depth_image(msg, out_dir):
 
     cv2.imwrite(out_img_path, depth_in_mm)
 
-def load_kitti_P2(calib_path):
-    """Lee el archivo .txt de KITTI y devuelve la matriz P2 completa (3x4) en float32."""
-    with open(calib_path, 'r') as f:
-        for line in f:
-            if line.startswith('P2:'):
-                # Extraer los 12 valores y redimensionar a la matriz de proyección 3x4
-                p2 = np.array([float(x) for x in line.split()[1:]]).reshape(3, 4)
-                return p2.astype(np.float32)
-    return None
+def load_kitti_matrix(calib_file, prefix):
+    if not prefix.endswith(':'):
+        prefix += ':'
 
-def load_velo2cam(calib_file):
-    with open(calib_file, "r") as f:
-        for line in f:
-            line = line.strip()
+    try:
+        with open(calib_file, "r") as f:
+            for line in f:
+                line = line.strip()
 
-            if line.startswith("Tr:"):
-                # Si no hay 12 elementos, .reshape(3, 4) lanzará el ValueError automáticamente
-                return np.array([float(v) for v in line.split()[1:]]).reshape(3, 4).astype(np.float32)
+                if line.startswith(prefix):
+                    return np.array([float(v) for v in line.split()[1:]]).reshape(3, 4).astype(np.float32)
+
+    except Exception as e:
+        print(f"[ERROR] Failed to load '{prefix}' from '{calib_file}'. Details: {e}")
+
     return None
 
 def get_cam2_2_lidar_matrix(P2, T_cam0_to_lidar):
