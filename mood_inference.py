@@ -38,7 +38,7 @@ import cv2
 
 import sys
 
-from utils import load_intrinsics_from_yaml, depth_2_cloud, load_kitti_P2, load_velo2cam, get_cam2_2_lidar_matrix
+from utils import depth_2_cloud, get_cam2_2_lidar_matrix, load_kitti_matrix
 
 def export_3d_detections(out_dir, img_id, boxes3d, scores, class_ids, cam2_2_lidar=None):
 
@@ -178,7 +178,7 @@ if __name__ == "__main__":
 
     if args.lidar_ref:
         if args.out_detections:
-            velo2cam0 = load_velo2cam(args.lidar_ref)
+            velo2cam0 = load_kitti_matrix(args.lidar_ref, "Tr:")
             if velo2cam0 is None:
                 print("velo2cam reading failed")
                 sys.exit(1)
@@ -253,7 +253,7 @@ if __name__ == "__main__":
     class_id_mapping = {i: text for i, text in enumerate(input_texts)}
 
     # intrinsics = load_intrinsics_from_yaml(args.intrinsics)
-    P2 = load_kitti_P2(args.intrinsics)
+    P2 = load_kitti_matrix(args.intrinsics, "P2:")
 
     if P2 is None:
         print("P2 reading failed")
