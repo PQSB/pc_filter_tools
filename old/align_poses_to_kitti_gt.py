@@ -50,11 +50,10 @@ def main():
     if Tr_raw is None:
         sys.exit(1)
 
-    Tr = np.eye(4) # Create 4x4 matrix
-    Tr[:3, :] = Tr_raw
-
+    Tr = np.eye(4) # Crea una matriz identidad de 4x4 (la traslación por defecto ya es 0)
+    Tr[:3, :3] = Tr_raw[:3, :3] # Copia SOLAMENTE la rotación (3x3), ignorando la columna de traslación
+    # -------------------------
     Tr_inv = np.linalg.inv(Tr)
-
     aligned_poses = []
 
     for pose in poses:

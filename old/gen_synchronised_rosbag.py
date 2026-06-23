@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 def detect_topics_from_csv(csv_path):
     """
-    Returns a list with the topics to filter
+    Returns a list with the topics to sync
     """
     with open(csv_path, "r") as f:
         reader = csv.DictReader(f)
@@ -47,10 +47,10 @@ def load_indices(csv_path):
 
 def generate_synced_bag(input_bag, output_bag, csv_path):
     # -----------------------------
-    # 1. Detect topics to filter
+    # 1. Detect topics to sync
     # -----------------------------
     topics_to_filter = detect_topics_from_csv(csv_path)
-    print("Topics to filter:", topics_to_filter)
+    print("Topics to sync:", topics_to_filter)
 
     indices = load_indices(csv_path)
 

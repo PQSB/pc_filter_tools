@@ -61,6 +61,9 @@ def export_msgs(bag_path, topics2export):
                 elif key == "images":
                     export_image(msg, info["out_path"])
 
+                elif key == "depth_img":
+                    export_depth_image(msg, info["out_path"])
+
                 elif key == "depth2cloud":
                     export_cloud_from_depth(msg, info["k"], info["out_path"])
 
@@ -82,7 +85,7 @@ def parse_topic_and_dir(param):
     return topic, directory
 
 
-def prepare_args(lidar, images, depth2cloud, k_depth, outdir):
+def prepare_args(lidar, images, depth_img, depth2cloud, k_depth, outdir):
     dict = {}
 
     if lidar:
@@ -96,6 +99,13 @@ def prepare_args(lidar, images, depth2cloud, k_depth, outdir):
         topic, directory = parse_topic_and_dir(images)
         dict["images"] = {
             "topic": topic,
+            "dir": directory
+        }
+
+    if depth_img:
+        topic, directory = parse_topic_and_dir(depth_img)
+        dict["depth_img"] = {
+            "topic":topic,
             "dir": directory
         }
 
@@ -121,6 +131,7 @@ def main():
 
     parser.add_argument("--out_root_dir", type=str, required=True, help="Root directory in which to create the subdirectories")
     parser.add_argument("--lidar", type=str, help="Provide the lidar topic and the directory name topic:directory_name")
+    parser.add_argument("--depth_img", type=str, help="Provide the depth images topic and the directory name topic:directory_name")
     parser.add_argument("--images", type=str, help="Provide the images topic and the directory name topic:directory_name")
     parser.add_argument("--depth2cloud", type=str, help="Provide the depth images topic and the name of the directory to which the point cloud generated from the depth image should be exported topic:directory_name")
     parser.add_argument("--depth_k", type=str, help="Yaml file with the K matrix needed to obtain the point cloud from the depth image")
@@ -137,7 +148,7 @@ def main():
         os.makedirs(args.out_root_dir, exist_ok=True)
 
     topics2export = prepare_args(
-        args.lidar, args.images, args.depth2cloud, args.depth_k, args.out_root_dir)
+        args.lidar, args.images, args.depth_img, args.depth2cloud, args.depth_k, args.out_root_dir)
 
     export_msgs(args.bag_path, topics2export)
 
