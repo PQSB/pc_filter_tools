@@ -1,0 +1,196 @@
+#!/bin/bash
+
+set -e
+
+# Chech arguments
+if [ "$#" -ne 6 ]; then
+    echo -e "\e[31mError: Missing parameters.\e[0m"
+    echo "Usage: $0 <init_seq> <end_seq> <out_root_dir> <conda_genz_env> <dataset_root_path> <data_files_root_path>"
+    exit 1
+fi
+
+# Assign arguments
+SEQ_START=$1
+SEQ_END=$2
+BASE_DEST_DIR=$3
+CONDA_ENV=$4
+DATASET_ROOT=$5
+DATA_ROOT=$6
+
+MOOD_MIN_SCORE=0.4
+PV_RCNN_MIN_SCORE=0.5
+MAX_DIST=20
+
+mkdir -p "$BASE_DEST_DIR"
+
+export genz_icp_out_dir=$BASE_DEST_DIR/tmp_genz
+
+if [ -n "$CONDA_DEFAULT_ENV" ] && [ "$CONDA_DEFAULT_ENV" == "$CONDA_ENV" ]; then
+    echo -e "\e[33m$CONDA_ENV conda environment already active\e[0m"
+else
+    conda activate "$CONDA_ENV"
+        echo -e "\e[34m$CONDA_ENV conda environment\e[0m \e[32mcorrectly activated\e[0m"
+fi
+
+move_and_clean() {
+    local dir_ros2=$1
+    cd "${genz_icp_out_dir}/latest"
+    mv *_kitti.txt "$SEQ_DEST_DIR/"
+    cd - > /dev/null
+    rm -rf "${genz_icp_out_dir}"
+    rm -r "$dir_ros2"
+}
+
+echo "Generating odometry poses from sequence $SEQ_START to $SEQ_END"
+echo "Saving results in: $BASE_DEST_DIR"
+echo "--------------------------------------------------"
+
+for i in $(seq "$SEQ_START" "$SEQ_END"); do
+    SEQ=$(printf "%02d" $i)
+
+    SEQ_DEST_DIR="$(cd "$BASE_DEST_DIR" && pwd)/seq_${SEQ}"
+    mkdir -p "$SEQ_DEST_DIR"
+
+    echo "========================================="
+    echo "Processing Sequence: ${SEQ}"
+    echo "Saving in: $SEQ_DEST_DIR"
+    echo "========================================="
+
+    # ---------------------- TEST 0 ----------------------------------
+
+    # EXPERIMENT 1 ----------------------------------
+    ros2 run pc_filter dataset_pc_filter -p "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/velodyne/" --ts_file "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/times.txt" --pc_topic /in_clouds -o "${DATA_ROOT}/seq${SEQ}_test0_exp1" --no_confirm
+
+    genz_icp_pipeline "${DATA_ROOT}/seq${SEQ}_test0_exp1/" --config kitti.yaml
+    move_and_clean "${DATA_ROOT}/seq${SEQ}_test0_exp1"
+
+    #  EXPERIMENT 2 ----------------------------------
+    ros2 run pc_filter dataset_pc_filter -p "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/velodyne/" --ts_file "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/times.txt" --pc_topic /in_clouds --fov_filter "${DATA_ROOT}/fov_calib_files/fov_calib_seq_${SEQ}.txt" -o "${DATA_ROOT}/seq${SEQ}_test0_exp2" --no_confirm
+
+    genz_icp_pipeline "${DATA_ROOT}/seq${SEQ}_test0_exp2" --config kitti.yaml
+    move_and_clean "${DATA_ROOT}/seq${SEQ}_test0_exp2"
+
+    # ---------------------- TEST 1 ----------------------------------
+
+    # EXPERIMENT 1 ----------------------------------
+
+    # 3D-MOOD
+    ros2 run pc_filter dataset_pc_filter -p "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/velodyne/" --ts_file "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/times.txt" --fov_filter "${DATA_ROOT}/fov_calib_files/fov_calib_seq_${SEQ}.txt" --m_det_dir "${DATA_ROOT}/3D_MOOD_detections/kitti_odometry/CarPedCyc/seq_${SEQ}/" --m_score $MOOD_MIN_SCORE --m_classes Car,Pedestrian,Cyclist --m_topic /mood_filtered_clouds -o "${DATA_ROOT}/seq${SEQ}_test1_exp1_mood" --no_confirm
+
+    genz_icp_pipeline "${DATA_ROOT}/seq${SEQ}_test1_exp1_mood" --config kitti.yaml
+    move_and_clean "${DATA_ROOT}/seq${SEQ}_test1_exp1_mood"
+
+    # PV-RCNN
+    ros2 run pc_filter dataset_pc_filter -p "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/velodyne/" --ts_file "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/times.txt" --fov_filter "${DATA_ROOT}/fov_calib_files/fov_calib_seq_${SEQ}.txt" --m_det_dir "${DATA_ROOT}/openPCDet_detections/pv_rcnn/kitti_odometry/seq_${SEQ}/" --m_score $PV_RCNN_MIN_SCORE --m_classes Car,Pedestrian,Cyclist --m_topic /pvrcnn_filtered_clouds -o "${DATA_ROOT}/seq${SEQ}_test1_exp1_pvrcnn" --no_confirm
+
+    genz_icp_pipeline "${DATA_ROOT}/seq${SEQ}_test1_exp1_pvrcnn" --config kitti.yaml
+    move_and_clean "${DATA_ROOT}/seq${SEQ}_test1_exp1_pvrcnn"
+
+    # SEMANTIC KITTI
+    ros2 run pc_filter dataset_pc_filter -p "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/velodyne/" --ts_file "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/times.txt" --fov_filter "${DATA_ROOT}/fov_calib_files/fov_calib_seq_${SEQ}.txt" --sk_lbl_dir "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/labels/" --sk_classes car,moving-car,bicyclist,person,moving-bicyclist,moving-person --sk_topic /sk_filtered_clouds -o "${DATA_ROOT}/seq${SEQ}_test1_exp1_sk" --no_confirm
+
+    genz_icp_pipeline "${DATA_ROOT}/seq${SEQ}_test1_exp1_sk" --config kitti.yaml
+    move_and_clean "${DATA_ROOT}/seq${SEQ}_test1_exp1_sk"
+
+    # EXPERIMENT 2 ----------------------------------
+
+    # 3D-MOOD
+    ros2 run pc_filter dataset_pc_filter -p "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/velodyne/" --ts_file "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/times.txt" --fov_filter "${DATA_ROOT}/fov_calib_files/fov_calib_seq_${SEQ}.txt" --m_det_dir "${DATA_ROOT}/3D_MOOD_detections/kitti_odometry/CarPedCyc/seq_${SEQ}/" --m_score $MOOD_MIN_SCORE --m_classes Car,Pedestrian,Cyclist --m_topic /mood_filtered_clouds --m_max_dist $MAX_DIST -o "${DATA_ROOT}/seq${SEQ}_test1_exp2_mood" --no_confirm
+
+    genz_icp_pipeline "${DATA_ROOT}/seq${SEQ}_test1_exp2_mood" --config kitti.yaml
+    move_and_clean "${DATA_ROOT}/seq${SEQ}_test1_exp2_mood"
+
+    # PV-RCNN
+    ros2 run pc_filter dataset_pc_filter -p "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/velodyne/" --ts_file "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/times.txt" --fov_filter "${DATA_ROOT}/fov_calib_files/fov_calib_seq_${SEQ}.txt" --m_det_dir "${DATA_ROOT}/openPCDet_detections/pv_rcnn/kitti_odometry/seq_${SEQ}/" --m_score $PV_RCNN_MIN_SCORE --m_classes Car,Pedestrian,Cyclist --m_topic /pvrcnn_filtered_clouds --m_max_dist $MAX_DIST -o "${DATA_ROOT}/seq${SEQ}_test1_exp2_pvrcnn" --no_confirm
+
+    genz_icp_pipeline "${DATA_ROOT}/seq${SEQ}_test1_exp2_pvrcnn" --config kitti.yaml
+    move_and_clean "${DATA_ROOT}/seq${SEQ}_test1_exp2_pvrcnn"
+
+    # SEMANTIC KITTI
+    ros2 run pc_filter dataset_pc_filter -p "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/velodyne/" --ts_file "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/times.txt" --fov_filter "${DATA_ROOT}/fov_calib_files/fov_calib_seq_${SEQ}.txt" --sk_lbl_dir "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/labels/" --sk_classes car,moving-car,bicyclist,person,moving-bicyclist,moving-person --sk_topic /sk_filtered_clouds --sk_max_dist $MAX_DIST -o "${DATA_ROOT}/seq${SEQ}_test1_exp2_sk" --no_confirm
+
+    genz_icp_pipeline "${DATA_ROOT}/seq${SEQ}_test1_exp2_sk" --config kitti.yaml
+    move_and_clean "${DATA_ROOT}/seq${SEQ}_test1_exp2_sk"
+
+    # ---------------------- TEST 2 ----------------------------------
+
+    # EXPERIMENT 1 ----------------------------------
+
+    # PV-RCNN
+    ros2 run pc_filter dataset_pc_filter -p "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/velodyne/" --ts_file "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/times.txt" --m_det_dir "${DATA_ROOT}/openPCDet_detections/pv_rcnn/kitti_odometry/seq_${SEQ}/" --m_score $PV_RCNN_MIN_SCORE --m_classes Car,Pedestrian,Cyclist --m_topic /pvrcnn_filtered_clouds -o "${DATA_ROOT}/seq${SEQ}_test2_exp1_pvrcnn" --no_confirm
+
+    genz_icp_pipeline "${DATA_ROOT}/seq${SEQ}_test2_exp1_pvrcnn" --config kitti.yaml
+    move_and_clean "${DATA_ROOT}/seq${SEQ}_test2_exp1_pvrcnn"
+
+    # SEMANTIC KITTI
+    ros2 run pc_filter dataset_pc_filter -p "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/velodyne/" --ts_file "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/times.txt" --sk_lbl_dir "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/labels/" --sk_classes car,moving-car,bicyclist,person,moving-bicyclist,moving-person --sk_topic /sk_filtered_clouds -o "${DATA_ROOT}/seq${SEQ}_test2_exp1_sk" --no_confirm
+
+    genz_icp_pipeline "${DATA_ROOT}/seq${SEQ}_test2_exp1_sk" --config kitti.yaml
+    move_and_clean "${DATA_ROOT}/seq${SEQ}_test2_exp1_sk"
+
+    # EXPERIMENT 2 ----------------------------------
+
+    # PV-RCNN
+    ros2 run pc_filter dataset_pc_filter -p "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/velodyne/" --ts_file "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/times.txt" --m_det_dir "${DATA_ROOT}/openPCDet_detections/pv_rcnn/kitti_odometry/seq_${SEQ}/" --m_score $PV_RCNN_MIN_SCORE --m_classes Car,Pedestrian,Cyclist --m_topic /pvrcnn_filtered_clouds --m_max_dist $MAX_DIST -o "${DATA_ROOT}/seq${SEQ}_test2_exp2_pvrcnn" --no_confirm
+
+    genz_icp_pipeline "${DATA_ROOT}/seq${SEQ}_test2_exp2_pvrcnn" --config kitti.yaml
+    move_and_clean "${DATA_ROOT}/seq${SEQ}_test2_exp2_pvrcnn"  
+
+    # SEMANTIC KITTI
+    ros2 run pc_filter dataset_pc_filter -p "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/velodyne/" --ts_file "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/times.txt" --sk_lbl_dir "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/labels/" --sk_classes car,moving-car,bicyclist,person,moving-bicyclist,moving-person --sk_topic /sk_filtered_clouds --sk_max_dist $MAX_DIST -o "${DATA_ROOT}/seq${SEQ}_test2_exp2_sk" --no_confirm
+
+    genz_icp_pipeline "${DATA_ROOT}/seq${SEQ}_test2_exp2_sk" --config kitti.yaml
+    move_and_clean "${DATA_ROOT}/seq${SEQ}_test2_exp2_sk"
+
+    # ---------------------- TEST 3 ----------------------------------
+
+    # EXPERIMENT 1 ----------------------------------
+
+    # 3D-MOOD
+    ros2 run pc_filter dataset_pc_filter -p "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/velodyne/" --ts_file "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/times.txt" --fov_filter "${DATA_ROOT}/fov_calib_files/fov_calib_seq_${SEQ}.txt" --m_det_dir "${DATA_ROOT}/3D_MOOD_detections/kitti_odometry/CarPedCycBusTruckMotTrafVeg/seq_${SEQ}/" --m_score $MOOD_MIN_SCORE --m_classes "Car,Pedestrian,Cyclist,Bus,Truck,Motorbike,Traffic sign,Vegetation" --m_topic /mood_filtered_clouds -o "${DATA_ROOT}/seq${SEQ}_test3_exp1_mood" --no_confirm
+
+    genz_icp_pipeline "${DATA_ROOT}/seq${SEQ}_test3_exp1_mood" --config kitti.yaml
+    move_and_clean "${DATA_ROOT}/seq${SEQ}_test3_exp1_mood"
+
+    # SEMANTIC KITTI
+    ros2 run pc_filter dataset_pc_filter -p "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/velodyne/" --ts_file "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/times.txt" --fov_filter "${DATA_ROOT}/fov_calib_files/fov_calib_seq_${SEQ}.txt" --sk_lbl_dir "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/labels/" --sk_classes car,moving-car,bicyclist,person,moving-bicyclist,moving-person,bicycle,bus,motorcycle,truck,moving-motorcyclist,moving-bus,moving-truck,other-vehicle,moving-other-vehicle,traffic-sign,vegetation --sk_topic /sk_filtered_clouds -o "${DATA_ROOT}/seq${SEQ}_test3_exp1_sk" --no_confirm
+
+    genz_icp_pipeline "${DATA_ROOT}/seq${SEQ}_test3_exp1_sk" --config kitti.yaml
+    move_and_clean "${DATA_ROOT}/seq${SEQ}_test3_exp1_sk"
+
+    # EXPERIMENT 2 ----------------------------------
+
+    # 3D-MOOD
+    ros2 run pc_filter dataset_pc_filter -p "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/velodyne/" --ts_file "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/times.txt" --fov_filter "${DATA_ROOT}/fov_calib_files/fov_calib_seq_${SEQ}.txt" --m_det_dir "${DATA_ROOT}/3D_MOOD_detections/kitti_odometry/CarPedCycBusTruckMotTrafVeg/seq_${SEQ}/" --m_score $MOOD_MIN_SCORE --m_classes "Car,Pedestrian,Cyclist,Bus,Truck,Motorbike,Traffic sign,Vegetation" --m_topic /mood_filtered_clouds --m_max_dist $MAX_DIST -o "${DATA_ROOT}/seq${SEQ}_test3_exp2_mood" --no_confirm
+
+    genz_icp_pipeline "${DATA_ROOT}/seq${SEQ}_test3_exp2_mood" --config kitti.yaml
+    move_and_clean "${DATA_ROOT}/seq${SEQ}_test3_exp2_mood"
+
+    # SEMANTIC KITTI
+    ros2 run pc_filter dataset_pc_filter -p "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/velodyne/" --ts_file "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/times.txt" --fov_filter "${DATA_ROOT}/fov_calib_files/fov_calib_seq_${SEQ}.txt" --sk_lbl_dir "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/labels/" --sk_classes car,moving-car,bicyclist,person,moving-bicyclist,moving-person,bicycle,bus,motorcycle,truck,moving-motorcyclist,moving-bus,moving-truck,other-vehicle,moving-other-vehicle,traffic-sign,vegetation --sk_topic /sk_filtered_clouds --sk_max_dist $MAX_DIST -o "${DATA_ROOT}/seq${SEQ}_test3_exp2_sk" --no_confirm
+
+    genz_icp_pipeline "${DATA_ROOT}/seq${SEQ}_test3_exp2_sk" --config kitti.yaml
+    move_and_clean "${DATA_ROOT}/seq${SEQ}_test3_exp2_sk"
+
+    # ---------------------- TEST 4 ----------------------------------
+
+    # EXPERIMENT 1 ----------------------------------
+
+    # SEMANTIC KITTI
+    ros2 run pc_filter dataset_pc_filter -p "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/velodyne/" --ts_file "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/times.txt" --sk_lbl_dir "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/labels/" --sk_classes moving-car,moving-bicyclist,moving-person,moving-motorcyclist,moving-bus,moving-truck,moving-other-vehicle --sk_topic /sk_filtered_clouds -o "${DATA_ROOT}/seq${SEQ}_test4_exp1_sk" --no_confirm
+
+    genz_icp_pipeline "${DATA_ROOT}/seq${SEQ}_test4_exp1_sk" --config kitti.yaml
+    move_and_clean "${DATA_ROOT}/seq${SEQ}_test4_exp1_sk"
+
+    # EXPERIMENT 2 ----------------------------------
+    
+    # SEMANTIC KITTI
+    ros2 run pc_filter dataset_pc_filter -p "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/velodyne/" --ts_file "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/times.txt" --sk_lbl_dir "${DATASET_ROOT}/kitti/odometry/dataset/sequences/${SEQ}/labels/" --sk_classes moving-car,moving-bicyclist,moving-person,moving-motorcyclist,moving-bus,moving-truck,moving-other-vehicle --sk_topic /sk_filtered_clouds --sk_max_dist $MAX_DIST -o "${DATA_ROOT}/seq${SEQ}_test4_exp2_sk" --no_confirm
+
+    genz_icp_pipeline "${DATA_ROOT}/seq${SEQ}_test4_exp2_sk" --config kitti.yaml
+    move_and_clean "${DATA_ROOT}/seq${SEQ}_test4_exp2_sk"
+
+done
+
+conda deactivate
+echo "ODOMETRY POSES GENERATION COMPLETED!"
