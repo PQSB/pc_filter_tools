@@ -97,14 +97,19 @@ for subdir in "$ROOT_POSES_DIR"/*/; do
                 base_name="seq${raw_seq}_test${raw_test}_exp${raw_exp}_${optional}_results"
             fi
 
-            out_zip_trans="$out_subdir/${base_name}_trans.zip"
-            out_zip_rot="$out_subdir/${base_name}_rot.zip"
+            ape_out_zip_trans="$out_subdir/${base_name}_ape_trans.zip"
+            ape_out_zip_rot="$out_subdir/${base_name}_ape_rot.zip"
+            rpe_out_zip_trans="$out_subdir/${base_name}_rpe_trans.zip"
+            rpe_out_zip_rot="$out_subdir/${base_name}_rpe_rot.zip"
 
             # Get evo_ape translation and rotation results
             echo "Processing : $filename"
-            evo_ape kitti "$gt_file" "$filepath" -r trans_part --save_results "$out_zip_trans"
-            
-            evo_ape kitti "$gt_file" "$filepath" -r rot_part --save_results "$out_zip_rot"
+            evo_ape kitti "$gt_file" "$filepath" -r trans_part --save_results "$ape_out_zip_trans"
+            evo_ape kitti "$gt_file" "$filepath" -r rot_part --save_results "$ape_out_zip_rot"
+
+            # Get evo_rpe translation and rotation results
+            evo_rpe kitti "$gt_file" "$filepath" -r trans_part --save_results "$rpe_out_zip_trans"
+            evo_rpe kitti "$gt_file" "$filepath" -r rot_part --save_results "$rpe_out_zip_rot"
 
             clean_seq=$((10#$raw_seq))
             clean_test=$((10#$raw_test))
@@ -116,8 +121,10 @@ for subdir in "$ROOT_POSES_DIR"/*/; do
                 --test "$clean_test" \
                 --experiment "$clean_exp" \
                 --detector "$optional" \
-                --zip_trans "$out_zip_trans" \
-                --zip_rot "$out_zip_rot"
+                --zip_ape_trans "$ape_out_zip_trans" \
+                --zip_ape_rot "$ape_out_zip_rot" \
+                --zip_rpe_trans "$rpe_out_zip_trans" \
+                --zip_rpe_rot "$rpe_out_zip_rot"
 
         else
             echo "Error: Invalid file in directory $filename" >&2

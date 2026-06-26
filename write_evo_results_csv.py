@@ -43,9 +43,13 @@ def main():
     parser.add_argument("--detector", type=str, default="", help="Nombre corto del detector (mood, pvrcnn, sk).")
 
     # evo_ape zip results file
-    parser.add_argument("--zip_trans", required=True, help="Translation evo_ape results file")
-    parser.add_argument("--zip_rot", required=True, help="Rotation evo_ape results file")
-    
+    parser.add_argument("--zip_ape_trans", required=True, help="Translation evo_ape results file")
+    parser.add_argument("--zip_ape_rot", required=True, help="Rotation evo_ape results file")
+
+    # evo_rpe zip results files (Nuevos argumentos)
+    parser.add_argument("--zip_rpe_trans", required=True, help="Translation evo_rpe results file")
+    parser.add_argument("--zip_rpe_rot", required=True, help="Rotation evo_rpe results file")
+
     args = parser.parse_args()
 
     # Changes the detector provieded to the expected detector name in the csv file
@@ -70,14 +74,25 @@ def main():
     info_detector = f"Detector: {real_detector if real_detector else 'NO'}"
 
     # Get the stats from evo_ape zip results files
-    trans_stats = get_stats_from_zip(args.zip_trans)
-    rot_stats = get_stats_from_zip(args.zip_rot)
+    ape_trans_stats = get_stats_from_zip(args.zip_ape_trans)
+    ape_rot_stats = get_stats_from_zip(args.zip_ape_rot)
 
-    if trans_stats is None:
-        print("[ERROR]: Stats coudn't be loaded from the translation zip file provided")
+    rpe_trans_stats = get_stats_from_zip(args.zip_rpe_trans)
+    rpe_rot_stats = get_stats_from_zip(args.zip_rpe_rot)
+
+
+    if ape_trans_stats is None:
+        print("[ERROR]: Stats coudn't be loaded from the ape translation zip file provided")
         sys.exit(1)
-    elif rot_stats is None:
-        print("[ERROR]: Stats coudn't be loaded from the rotation zip file provided")
+    elif ape_rot_stats is None:
+        print("[ERROR]: Stats coudn't be loaded from the ape rotation zip file provided")
+        sys.exit(1)
+
+    if rpe_trans_stats is None:
+        print("[ERROR]: Stats coudn't be loaded from the rpe translation zip file provided")
+        sys.exit(1)
+    elif rpe_rot_stats is None:
+        print("[ERROR]: Stats coudn't be loaded from the rpe rotation zip file provided")
         sys.exit(1)
 
     # Load csv file (making sure Detector and sequence columns are loaded as str)
@@ -103,16 +118,27 @@ def main():
         print(f"[WARN]: NO matching row for: sequence={args.sequence}, test={args.test}, experiment={args.experiment}. ({info_detector})")
         sys.exit(0)
 
-    # Fill the row results columns
-    df.loc[mask, 't_mean'] = trans_stats['mean']
-    df.loc[mask, 't_median'] = trans_stats['median']
-    df.loc[mask, 't_std'] = trans_stats['std']
-    df.loc[mask, 't_max'] = trans_stats['max']
+    # Fill the row results columns (evo_ape)
+    df.loc[mask, 'ape_t_mean'] = ape_trans_stats['mean']
+    df.loc[mask, 'ape_t_median'] = ape_trans_stats['median']
+    df.loc[mask, 'ape_t_std'] = ape_trans_stats['std']
+    df.loc[mask, 'ape_t_max'] = ape_trans_stats['max']
     
-    df.loc[mask, 'r_mean'] = rot_stats['mean']
-    df.loc[mask, 'r_median'] = rot_stats['median']
-    df.loc[mask, 'r_std'] = rot_stats['std']
-    df.loc[mask, 'r_max'] = rot_stats['max']
+    df.loc[mask, 'ape_r_mean'] = ape_rot_stats['mean']
+    df.loc[mask, 'ape_r_median'] = ape_rot_stats['median']
+    df.loc[mask, 'ape_r_std'] = ape_rot_stats['std']
+    df.loc[mask, 'ape_r_max'] = ape_rot_stats['max']
+
+    # Fill the row results columns (evo_rpe)
+    df.loc[mask, 'rpe_t_mean'] = rpe_trans_stats['mean']
+    df.loc[mask, 'rpe_t_median'] = rpe_trans_stats['median']
+    df.loc[mask, 'rpe_t_std'] = rpe_trans_stats['std']
+    df.loc[mask, 'rpe_t_max'] = rpe_trans_stats['max']
+    
+    df.loc[mask, 'rpe_r_mean'] = rpe_rot_stats['mean']
+    df.loc[mask, 'rpe_r_median'] = rpe_rot_stats['median']
+    df.loc[mask, 'rpe_r_std'] = rpe_rot_stats['std']
+    df.loc[mask, 'rpe_r_max'] = rpe_rot_stats['max']
 
     # Save results
     df.to_csv(args.csv, sep=';',  decimal=',', encoding='utf-8', index=False)
