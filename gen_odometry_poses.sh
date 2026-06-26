@@ -2,7 +2,7 @@
 
 set -e
 
-# Chech arguments
+# Check arguments
 if [ "$#" -ne 6 ]; then
     echo -e "\e[31mError: Missing parameters.\e[0m"
     echo "Usage: $0 <init_seq> <end_seq> <out_root_dir> <conda_genz_env> <dataset_root_path> <data_files_root_path>"
@@ -17,8 +17,8 @@ CONDA_ENV=$4
 DATASET_ROOT=$5
 DATA_ROOT=$6
 
-MOOD_MIN_SCORE=0.4
-PV_RCNN_MIN_SCORE=0.5
+MOOD_MIN_SCORE=0.15
+PV_RCNN_MIN_SCORE=0.4
 MAX_DIST=20
 
 mkdir -p "$BASE_DEST_DIR"
