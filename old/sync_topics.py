@@ -3,6 +3,7 @@ import bisect
 import os
 import csv
 from tqdm import tqdm
+import sys
 
 import rosbag2_py
 from rclpy.serialization import deserialize_message
@@ -29,12 +30,12 @@ def store_topics_times(path, b_topic, t_topics):
     # Comprobar que los topics existen en el rosbag
     if b_topic not in type_map:
         print(f"❌ Topic: {b_topic} doesn't exist")
-        return
+        sys.exit(1)
 
     for t in t_topics:
         if t not in type_map:
             print(f"❌ Topic: {t} doesn't exist")
-            return
+            sys.exit(1)
 
     target_msgs = {t: [] for t in t_topics}
     base_msgs = []
@@ -80,6 +81,10 @@ def store_topics_times(path, b_topic, t_topics):
 def sync_base_targets(path, b_topic, t_topics):
     base_times, target_times = store_topics_times(path, b_topic, t_topics)
 
+    if not base_times:
+        print(f"❌ Error: Topic '{b_topic}' is empty")
+        sys.exit(1)
+    
     # Extract only the timestamps of every target topic
     targets_ts = {}
     for topic in t_topics:
@@ -87,6 +92,11 @@ def sync_base_targets(path, b_topic, t_topics):
         ts_only = [ts for (ts, _) in ts_idx]
         targets_ts[topic] = ts_only
 
+    for topic in t_topics:
+        if not targets_ts[topic]:
+            print(f"❌ Error: Topic {topic} is empty")
+            sys.exit(1)
+    
     pairs = []
 
     for i in tqdm(range(len(base_times)), desc="Synchronizing topics"):
@@ -102,7 +112,7 @@ def sync_base_targets(path, b_topic, t_topics):
             candidates = []
             if pos > 0:
                 candidates.append(ts_and_idx[pos - 1])
-            if pos < len(target_times):
+            if pos < len(ts_and_idx):
                 candidates.append(ts_and_idx[pos])
 
             best = min(candidates, key=lambda x: abs(x[0] - ts_base))
