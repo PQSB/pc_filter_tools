@@ -105,11 +105,11 @@ for subdir in "$ROOT_POSES_DIR"/*/; do
             # Get evo_ape translation and rotation results
             echo "Processing : $filename"
             evo_ape kitti "$gt_file" "$filepath" -r trans_part --save_results "$ape_out_zip_trans"
-            evo_ape kitti "$gt_file" "$filepath" -r rot_part --save_results "$ape_out_zip_rot"
+            evo_ape kitti "$gt_file" "$filepath" -r angle_rad --save_results "$ape_out_zip_rot"
 
             # Get evo_rpe translation and rotation results
             evo_rpe kitti "$gt_file" "$filepath" -r trans_part --save_results "$rpe_out_zip_trans"
-            evo_rpe kitti "$gt_file" "$filepath" -r rot_part --save_results "$rpe_out_zip_rot"
+            evo_rpe kitti "$gt_file" "$filepath" -r angle_rad --save_results "$rpe_out_zip_rot"
 
             clean_seq=$((10#$raw_seq))
             clean_test=$((10#$raw_test))
