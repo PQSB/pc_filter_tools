@@ -10,7 +10,7 @@ from rclpy.serialization import deserialize_message
 from rosidl_runtime_py.utilities import get_message
 
 def store_topics_times(path, b_topic, t_topics):
-    # Configuración del reader
+    # reader configuration
     storage_options = rosbag2_py.StorageOptions(
         uri=path,
         storage_id='mcap'
@@ -27,7 +27,7 @@ def store_topics_times(path, b_topic, t_topics):
     topic_types = reader.get_all_topics_and_types()
     type_map = {topic.name: topic.type for topic in topic_types}
 
-    # Comprobar que los topics existen en el rosbag
+    # Check that the topics exist in the rosbag
     if b_topic not in type_map:
         print(f"❌ Topic: {b_topic} doesn't exist")
         sys.exit(1)
@@ -56,7 +56,7 @@ def store_topics_times(path, b_topic, t_topics):
         colour="cyan"
     )
 
-    # Recorrer el rosbag guardando en un array los mensajes de cada topic
+    # Iterate through the rosbag, storing the messages from each topic in an array
     while reader.has_next():
         topic, data, t = reader.read_next()
         pbar.update(1)
@@ -78,13 +78,26 @@ def store_topics_times(path, b_topic, t_topics):
     return base_msgs, target_msgs
 
 
-def sync_base_targets(path, b_topic, t_topics):
+def sync_base_targets(path, b_topic, t_topics, times_file):
     base_times, target_times = store_topics_times(path, b_topic, t_topics)
 
     if not base_times:
         print(f"❌ Error: Topic '{b_topic}' is empty")
         sys.exit(1)
-    
+
+    dir_path = os.path.dirname(times_file)
+    if dir_path != "":
+        os.makedirs(dir_path, exist_ok=True)
+        
+    # Create an array with the converted timestamps
+    lines = [f"{(time_ns / 1_000_000_000.0):.9f}" for time_ns, _ in base_times]
+
+    # Join all the timestamps using \n as separator
+    with open(times_file, "w") as f:
+        f.write("\n".join(lines))
+
+    print(f"✅ timestamps file exported to {os.path.abspath(times_file)}")
+
     # Extract only the timestamps of every target topic
     targets_ts = {}
     for topic in t_topics:
@@ -164,11 +177,12 @@ def main():
     parser.add_argument("--bag_path", type=str, required=True, help="Rosbag path")
     parser.add_argument("--base_topic", type=str, required=True, help="Slowest topic (used as reference to sync the other one)")
     parser.add_argument("--target_topics", type=str, required=True, nargs="+", help="Topics to be synchronized with the base one (/topic1 /topic2 ...)")
+    parser.add_argument("--export_times", type=str, required=True, help="Output path for times file of the reference topic")
     parser.add_argument("--output", type=str, required=True, help="Output path of the csv file")
     args = parser.parse_args()
 
     pairs = sync_base_targets(
-        args.bag_path, args.base_topic, args.target_topics)
+        args.bag_path, args.base_topic, args.target_topics, args.export_times)
 
     write_pairs(pairs, args.output, args.base_topic, args.target_topics)
 
