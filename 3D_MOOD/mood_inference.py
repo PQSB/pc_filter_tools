@@ -169,7 +169,6 @@ if __name__ == "__main__":
     parser.add_argument("--out_images", type=str, help="Path in which to store the images with the 3D bounding boxes")
     parser.add_argument("--depth_images", type=str, help="Path in which to store the depth images calculated by 3D-MOOD")
     parser.add_argument("--prompt", type=str, default="chair.table.person.bin", help="Classes to detect, separated by dots (e.g., Car.Cat)")
-    parser.add_argument("--weights", type=str, required=True, help="Path to the model weights")
     parser.add_argument("--lidar_ref", type=str, help="Path to the file containing the lidar2cam matrix (export detections in LIDAR coordinates)")
 
     args = parser.parse_args()
