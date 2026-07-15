@@ -38,7 +38,7 @@ import cv2
 
 import sys
 
-from utils import depth_2_cloud, get_cam2_2_lidar_matrix, load_kitti_matrix
+from mood_utils import depth_2_cloud, get_cam2_2_lidar_matrix, load_kitti_matrix, load_intrinsics_from_yaml
 
 def export_3d_detections(out_dir, img_id, boxes3d, scores, class_ids, cam2_2_lidar=None):
 
@@ -163,7 +163,7 @@ def get_3d_mood_swin_base(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Export the detections and point clouds resulting from the inference using 3D-MOOD")
     parser.add_argument("--input", type=str, required=True, help="Path to the input images directory")
-    parser.add_argument("--intrinsics", type=str, required=True, help="Path to the camera intrinsics file")
+    parser.add_argument("--intrinsics", type=str, required=True, help="Path to the camera intrinsics file (kitti calib file format of yaml)")
     parser.add_argument("--out_detections", type=str, help="Path in which to store the detections")
     parser.add_argument("--out_pointcloud", type=str, help="Path in which to store the generated point clouds")
     parser.add_argument("--out_images", type=str, help="Path in which to store the images with the 3D bounding boxes")
@@ -252,18 +252,18 @@ if __name__ == "__main__":
     # Mapping for 3D bounding boxes
     class_id_mapping = {i: text for i, text in enumerate(input_texts)}
 
-    # intrinsics = load_intrinsics_from_yaml(args.intrinsics)
-    P2 = load_kitti_matrix(args.intrinsics, "P2:")
-
-    if P2 is None:
-        print("P2 reading failed")
-        sys.exit(1)
-
-    intrinsics = P2[:, :3]
-
     cam2_2_lidar = None
     if cam02velo is not None:
+        P2 = load_kitti_matrix(args.intrinsics, "P2:")
+        if P2 is None:
+            print("P2 reading failed")
+            sys.exit(1)
+
         cam2_2_lidar = get_cam2_2_lidar_matrix(P2, cam02velo)
+        intrinsics = P2[:, :3]
+
+    else:
+        intrinsics = load_intrinsics_from_yaml(args.intrinsics)
 
     pbar = tqdm(img_paths, desc="3D-MOOD Inference")
 
