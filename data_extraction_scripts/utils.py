@@ -1,18 +1,10 @@
 import numpy as np
-import yaml
 import cv2
 from cv_bridge import CvBridge
 import os
 from sensor_msgs_py import point_cloud2
 
 bridge = CvBridge()
-
-def load_intrinsics_from_yaml(path):
-    with open(path, "r") as f:
-        data = yaml.safe_load(f)
-
-    K = np.array(data["camera"]["K"], dtype=np.float32).reshape(3, 3)
-    return K
 
 def depth_2_cloud(depth_img, K, scale=False, organized=False):
     if K is None:
@@ -128,42 +120,3 @@ def export_depth_image(msg, out_dir):
     out_img_path = os.path.join(out_dir, f"{ts}.png")
 
     cv2.imwrite(out_img_path, depth_in_mm)
-
-def load_kitti_matrix(calib_file, prefix):
-    if not prefix.endswith(':'):
-        prefix += ':'
-
-    try:
-        with open(calib_file, "r") as f:
-            for line in f:
-                line = line.strip()
-
-                if line.startswith(prefix):
-                    return np.array([float(v) for v in line.split()[1:]]).reshape(3, 4).astype(np.float32)
-
-    except Exception as e:
-        print(f"[ERROR] Failed to load '{prefix}' from '{calib_file}'. Details: {e}")
-
-    return None
-
-def get_cam2_2_lidar_matrix(P2, T_cam0_to_lidar):
-    fx = P2[0, 0]
-    fy = P2[1, 1]
-
-    bx = P2[0, 3] / fx
-    by = P2[1, 3] / fy
-    bz = P2[2, 3]
-
-    t2 = np.array([bx, by, bz])
-
-    # construir matriz Cam0 -> Cam2
-    T_cam0_to_cam2 = np.eye(4) # no hay rotación de cam0 a cam2
-    T_cam0_to_cam2[:3, 3] = t2
-
-    # construir matriz Cam2 -> Cam0
-    T_cam2_to_cam0 = np.linalg.inv(T_cam0_to_cam2)
-
-    # Construir matriz global Cam2 -> LIDAR
-    T_cam2_to_lidar = T_cam0_to_lidar @ T_cam2_to_cam0
-
-    return T_cam2_to_lidar
