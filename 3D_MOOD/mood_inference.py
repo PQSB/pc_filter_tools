@@ -222,7 +222,7 @@ if __name__ == "__main__":
 
     load_model_checkpoint(
         model,
-        weights=args.weights,
+        weights="https://huggingface.co/RoyYang0714/3D-MOOD/resolve/main/gdino3d_swin-b_120e_omni3d_834c97.pt",
         rev_keys=[(r"^model\.", ""), (r"^module\.", "")],
     )
 
