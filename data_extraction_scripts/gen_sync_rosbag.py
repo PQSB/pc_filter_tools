@@ -57,10 +57,15 @@ def generate_synced_bag(input_bag, output_bag, csv_path):
     # Counters for each topic to filter
     counters = {topic: 0 for topic in topics_to_filter}
 
+    if input_bag.endswith('.mcap'):
+        storage_id = 'mcap'
+    else:
+        storage_id = 'sqlite3'
+
     # -----------------------------
     # 2. Configure reader
     # -----------------------------
-    storage_options = rosbag2_py.StorageOptions(uri=input_bag, storage_id="mcap")
+    storage_options = rosbag2_py.StorageOptions(uri=input_bag, storage_id=storage_id)
     converter_options = rosbag2_py.ConverterOptions(
         input_serialization_format="cdr",
         output_serialization_format="cdr"
@@ -76,7 +81,7 @@ def generate_synced_bag(input_bag, output_bag, csv_path):
     # -----------------------------
     writer = rosbag2_py.SequentialWriter()
 
-    out_storage = rosbag2_py.StorageOptions(uri=output_bag, storage_id="mcap")
+    out_storage = rosbag2_py.StorageOptions(uri=output_bag, storage_id=storage_id)
     out_converter = rosbag2_py.ConverterOptions(
         input_serialization_format="cdr",
         output_serialization_format="cdr"

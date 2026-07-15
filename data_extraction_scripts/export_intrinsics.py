@@ -13,7 +13,12 @@ def extract_K_from_camera_info(msg_bytes):
 
 def export_intrinsics(bag_path, topic, output_yaml):
     # Configure reader
-    storage_options = rosbag2_py.StorageOptions(uri=bag_path, storage_id="mcap")
+    if bag_path.endswith('.mcap'):
+        storage_id = 'mcap'
+    else:
+        storage_id = 'sqlite3'
+
+    storage_options = rosbag2_py.StorageOptions(uri=bag_path, storage_id=storage_id)
     converter_options = rosbag2_py.ConverterOptions(
         input_serialization_format="cdr",
         output_serialization_format="cdr"

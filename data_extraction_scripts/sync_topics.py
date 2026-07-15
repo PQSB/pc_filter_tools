@@ -10,10 +10,15 @@ from rclpy.serialization import deserialize_message
 from rosidl_runtime_py.utilities import get_message
 
 def store_topics_times(path, b_topic, t_topics):
-    # reader configuration
+    # Configure reader
+    if path.endswith('.mcap'):
+        storage_id = 'mcap'
+    else:
+        storage_id = 'sqlite3'
+
     storage_options = rosbag2_py.StorageOptions(
         uri=path,
-        storage_id='mcap'
+        storage_id=storage_id
     )
 
     converter_options = rosbag2_py.ConverterOptions(

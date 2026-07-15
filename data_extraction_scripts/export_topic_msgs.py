@@ -11,10 +11,15 @@ from utils import *
 from tqdm import tqdm
 
 def export_msgs(bag_path, topics2export):
-    # Reader configuration
+    # Configure reader
+    if bag_path.endswith('.mcap'):
+        storage_id = 'mcap'
+    else:
+        storage_id = 'sqlite3'
+
     storage_options = rosbag2_py.StorageOptions(
         uri=bag_path,
-        storage_id='mcap'
+        storage_id=storage_id
     )
 
     converter_options = rosbag2_py.ConverterOptions(
