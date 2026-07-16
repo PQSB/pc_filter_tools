@@ -3,6 +3,11 @@ import cv2
 from cv_bridge import CvBridge
 import os
 from sensor_msgs_py import point_cloud2
+import warnings
+
+warnings.simplefilter("once", UserWarning)
+
+MAX_INTENSITY = 1.0
 
 bridge = CvBridge()
 
@@ -46,36 +51,61 @@ def depth_2_cloud(depth_img, K, scale=False, organized=False):
     zlidar = -Y
 
     if organized:
-        # Oragnized structure (H, W, 3)
+        # Oragnized structure (H, W, 4)
+        intensity = np.full_like(xlidar, MAX_INTENSITY, dtype=np.float32)
         cloud = np.stack((xlidar, ylidar, zlidar), axis=-1)
     else:
-        # Unorganized structure (N, 3) filtering invalid values
+        # Unorganized structure (N, 4) filtering invalid values
         mask = (xlidar > 0) & (~np.isnan(xlidar))
-        cloud = np.column_stack((xlidar[mask], ylidar[mask], zlidar[mask]))
+        intensity = np.full(np.count_nonzero(mask), MAX_INTENSITY, dtype=np.float32)
+
+        cloud = np.column_stack((xlidar[mask], ylidar[mask], zlidar[mask], intensity))
 
     return cloud
 
-def pointcloud2_to_xyz(msg):
-    points = list(point_cloud2.read_points_numpy(
-    msg,
-    # field_names=("x", "y", "z", "intensity"),
-    field_names=("x", "y", "z"),
-    skip_nans=True
-    ))
+def pointcloud2_to_xyzi(msg):
+    pc_fields = [f.name for f in msg.fields]
+
+    # Check if the input point cloud has intensity field
+    if "intensity" in pc_fields:
+        points = list(point_cloud2.read_points_numpy(
+        msg,
+        field_names=("x", "y", "z", "intensity"),
+        skip_nans=True
+        ))
+
+    # When the point cloud has no intensity field
+    else:
+        warnings.warn(
+            "Input point cloud has no 'intensity' field. "
+            "A default intensity value (255) will be assigned to all points. "
+            "This value is synthetic and should not be interpreted as a real sensor measurement.",
+            UserWarning,
+            stacklevel=2
+        )
+
+        xyz = point_cloud2.read_points_numpy(
+            msg,
+            field_names=("x", "y", "z"),
+            skip_nans=True
+        )
+
+        # Generate generic intensity field
+        intensity = np.full((xyz.shape[0], 1), MAX_INTENSITY, dtype=np.float32)
+        points = np.hstack((xyz, intensity))
+
     return np.array(points, dtype=np.float32)
 
 def export_cloud(msg, out_dir):
     ts = msg.header.stamp.sec * 1_000_000_000 + msg.header.stamp.nanosec
     filename = os.path.join(out_dir, f"{ts}.bin")
 
-    cloud = pointcloud2_to_xyz(msg)
+    cloud = pointcloud2_to_xyzi(msg)
     cloud.astype(np.float32).tofile(filename)
 
     return
 
 def export_cloud_from_depth(rosdepth, k, outdir, organized=False):
-    #bridge = CvBridge()
-
     ts = rosdepth.header.stamp.sec * 1_000_000_000 + rosdepth.header.stamp.nanosec
     filename = os.path.join(outdir, f"{ts}.bin")
 
@@ -87,7 +117,6 @@ def export_cloud_from_depth(rosdepth, k, outdir, organized=False):
     return
 
 def export_image(ros_msg, out_dir):
-    #bridge = CvBridge()
     cv_image = bridge.imgmsg_to_cv2(ros_msg, desired_encoding='bgr8')
 
     ts = ros_msg.header.stamp.sec * 1_000_000_000 + ros_msg.header.stamp.nanosec
