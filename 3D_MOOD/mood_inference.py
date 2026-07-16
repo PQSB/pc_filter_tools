@@ -93,7 +93,6 @@ def export_3d_detections(out_dir, img_id, boxes3d, scores, class_ids, cam2_2_lid
                 f"{w:.4f} {l:.4f} {h:.4f} {ry:.4f} "
                 f"{score:.2f}\n"
             )
-    # pbar.write(f"[OK] Image {img_id} detections exported to {filepath}")
     return
 
 def export_mood_point_cloud(out_dir, img_id, depth_img, intrinsics, pbar):
@@ -102,7 +101,6 @@ def export_mood_point_cloud(out_dir, img_id, depth_img, intrinsics, pbar):
     cloud = depth_2_cloud(depth_img, intrinsics)
     cloud.astype(np.float32).tofile(filepath)
 
-    # pbar.write(f"[OK] Point cloud from {img_id} exported to {filepath}")
     return
 
 def get_3d_mood_swin_base(
@@ -246,7 +244,12 @@ if __name__ == "__main__":
     # Convert to Tensor
     to_tensor = ToTensor()
 
-    img_paths = sorted(list(img_root.glob("*.png")))
+    img_paths = sorted(list(img_root.glob("*.png")) + list(img_root.glob("*.jpg")))
+
+    if not img_paths:
+        print(f"\n[ERROR] No images found: {img_root.resolve()}")
+        print("Extensions supported: .png, .jpg")
+        sys.exit(1)
 
     # Mapping for 3D bounding boxes
     class_id_mapping = {i: text for i, text in enumerate(input_texts)}
@@ -269,8 +272,6 @@ if __name__ == "__main__":
     for img_path in pbar:
         # Get the image name without the extension
         img_id = img_path.stem
-
-        # pbar.write(f"Processing image {img_id}")
 
         image = np.array(Image.open(img_path)).astype(np.float32)[
                 None, ...
