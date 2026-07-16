@@ -83,25 +83,29 @@ def store_topics_times(path, b_topic, t_topics):
     return base_msgs, target_msgs
 
 
-def sync_base_targets(path, b_topic, t_topics, times_file):
+def sync_base_targets(path, b_topic, t_topics, times_file, gen_csv):
     base_times, target_times = store_topics_times(path, b_topic, t_topics)
 
     if not base_times:
         print(f"❌ Error: Topic '{b_topic}' is empty")
         sys.exit(1)
 
-    dir_path = os.path.dirname(times_file)
-    if dir_path != "":
-        os.makedirs(dir_path, exist_ok=True)
+    if times_file:
+        dir_path = os.path.dirname(times_file)
+        if dir_path != "":
+            os.makedirs(dir_path, exist_ok=True)
         
-    # Create an array with the converted timestamps
-    lines = [f"{(time_ns / 1_000_000_000.0):.9f}" for time_ns, _ in base_times]
+        # Create an array with the converted timestamps
+        lines = [f"{(time_ns / 1_000_000_000.0):.9f}" for time_ns, _ in base_times]
 
-    # Join all the timestamps using \n as separator
-    with open(times_file, "w") as f:
-        f.write("\n".join(lines))
+        # Join all the timestamps using \n as separator
+        with open(times_file, "w") as f:
+            f.write("\n".join(lines))
 
-    print(f"✅ timestamps file exported to {os.path.abspath(times_file)}")
+        print(f"✅ timestamps file exported to {os.path.abspath(times_file)}")
+
+    if not gen_csv:
+        return None
 
     # Extract only the timestamps of every target topic
     targets_ts = {}
@@ -142,6 +146,8 @@ def sync_base_targets(path, b_topic, t_topics, times_file):
     return pairs
 
 def write_pairs(pairs, out_file, b_topic, t_topics):
+    if pairs is None:
+        return
 
     dir_path = os.path.dirname(out_file)
     if dir_path != "":
@@ -181,15 +187,23 @@ def main():
     parser = argparse.ArgumentParser(description="Sync a list of target topics with a base topic")
     parser.add_argument("--bag_path", type=str, required=True, help="Rosbag path")
     parser.add_argument("--base_topic", type=str, required=True, help="Slowest topic (used as reference to sync the other one)")
-    parser.add_argument("--target_topics", type=str, required=True, nargs="+", help="Topics to be synchronized with the base one (/topic1 /topic2 ...)")
-    parser.add_argument("--export_times", type=str, required=True, help="Output path for times file of the reference topic")
-    parser.add_argument("--output", type=str, required=True, help="Output path of the csv file")
+    parser.add_argument("--target_topics", type=str, nargs="+", help="Topics to be synchronized with the base one (/topic1 /topic2 ...)")
+    parser.add_argument("--out_times", type=str, help="Output path for times file of the reference topic")
+    parser.add_argument("--out_sync_file", type=str, help="Output path of the csv file")
     args = parser.parse_args()
 
-    pairs = sync_base_targets(
-        args.bag_path, args.base_topic, args.target_topics, args.export_times)
+    if not args.out_times and not args.out_sync_file:
+        parser.error("Must provide at least one of the output arguments: --out_times or --out_sync_file")
 
-    write_pairs(pairs, args.output, args.base_topic, args.target_topics)
+    if args.out_sync_file and not args.target_topics:
+        parser.error("If --out_sync_file is active, --target_topics must be provided")
+
+    gen_csv = args.out_sync_file is not None
+
+    pairs = sync_base_targets(
+        args.bag_path, args.base_topic, args.target_topics, args.out_times, gen_csv)
+
+    write_pairs(pairs, args.out_sync_file, args.base_topic, args.target_topics)
 
 if __name__ == "__main__":
     main()
