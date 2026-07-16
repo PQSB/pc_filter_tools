@@ -1,6 +1,8 @@
 import numpy as np
 import yaml
 
+MAX_INTENSITY = 1.0
+
 def load_intrinsics_from_yaml(path):
     try:
         with open(path, "r") as f:
@@ -54,12 +56,15 @@ def depth_2_cloud(depth_img, K, scale=False, organized=False):
     zlidar = -Y
 
     if organized:
-        # Oragnized structure (H, W, 3)
+        # Oragnized structure (H, W, 4)
+        intensity = np.full_like(xlidar, MAX_INTENSITY, dtype=np.float32)
         cloud = np.stack((xlidar, ylidar, zlidar), axis=-1)
     else:
-        # Unorganized structure (N, 3) filtering invalid values
+        # Unorganized structure (N, 4) filtering invalid values
         mask = (xlidar > 0) & (~np.isnan(xlidar))
-        cloud = np.column_stack((xlidar[mask], ylidar[mask], zlidar[mask]))
+        intensity = np.full(np.count_nonzero(mask), MAX_INTENSITY, dtype=np.float32)
+
+        cloud = np.column_stack((xlidar[mask], ylidar[mask], zlidar[mask], intensity))
 
     return cloud
 
