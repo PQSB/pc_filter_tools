@@ -12,10 +12,14 @@ from tqdm import tqdm
 
 def export_msgs(bag_path, topics2export):
     # Configure reader
-    if bag_path.endswith('.mcap'):
-        storage_id = 'mcap'
+    if os.path.isdir(bag_path):
+        files = os.listdir(bag_path)
+        if any(f.endswith('.mcap') for f in files):
+            storage_id = 'mcap'
+        else:
+            storage_id = 'sqlite3'
     else:
-        storage_id = 'sqlite3'
+        sys.exit(f"Error: Invalid path, not a directory: {bag_path}")
 
     storage_options = rosbag2_py.StorageOptions(
         uri=bag_path,
@@ -135,10 +139,10 @@ def main():
     parser.add_argument("--bag_path", type=str, required=True, help="Rosbag path")
 
     parser.add_argument("--out_root_dir", type=str, required=True, help="Root directory in which to create the subdirectories")
-    parser.add_argument("--lidar", type=str, help="Provide the lidar topic and the directory name topic:directory_name")
-    parser.add_argument("--depth_img", type=str, help="Provide the depth images topic and the directory name topic:directory_name")
-    parser.add_argument("--images", type=str, help="Provide the images topic and the directory name topic:directory_name")
-    parser.add_argument("--depth2cloud", type=str, help="Provide the depth images topic and the name of the directory to which the point cloud generated from the depth image should be exported topic:directory_name")
+    parser.add_argument("--lidar", type=str, help="Provide the lidar topic and the directory name /topic:directory_name")
+    parser.add_argument("--depth_img", type=str, help="Provide the depth images topic and the directory name /topic:directory_name")
+    parser.add_argument("--images", type=str, help="Provide the images topic and the directory name /topic:directory_name")
+    parser.add_argument("--depth2cloud", type=str, help="Provide the depth images topic and the name of the directory to which the point cloud generated from the depth image should be exported /topic:directory_name")
     parser.add_argument("--depth_k", type=str, help="Yaml file with the K matrix needed to obtain the point cloud from the depth image")
 
     args = parser.parse_args()

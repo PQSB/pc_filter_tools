@@ -1,6 +1,8 @@
 import csv
 import rosbag2_py
 import argparse
+import os
+import sys
 
 from tqdm import tqdm
 
@@ -57,11 +59,14 @@ def generate_synced_bag(input_bag, output_bag, csv_path):
     # Counters for each topic to filter
     counters = {topic: 0 for topic in topics_to_filter}
 
-    if input_bag.endswith('.mcap'):
-        storage_id = 'mcap'
+    if os.path.isdir(input_bag):
+        files = os.listdir(input_bag)
+        if any(f.endswith('.mcap') for f in files):
+            storage_id = 'mcap'
+        else:
+            storage_id = 'sqlite3'
     else:
-        storage_id = 'sqlite3'
-
+        sys.exit(f"Error: Invalid path, not a directory: {input_bag}")
     # -----------------------------
     # 2. Configure reader
     # -----------------------------

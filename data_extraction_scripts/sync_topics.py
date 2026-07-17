@@ -11,10 +11,14 @@ from rosidl_runtime_py.utilities import get_message
 
 def store_topics_times(path, b_topic, t_topics):
     # Configure reader
-    if path.endswith('.mcap'):
-        storage_id = 'mcap'
+    if os.path.isdir(path):
+        files = os.listdir(path)
+        if any(f.endswith('.mcap') for f in files):
+            storage_id = 'mcap'
+        else:
+            storage_id = 'sqlite3'
     else:
-        storage_id = 'sqlite3'
+        sys.exit(f"Error: Invalid path, not a directory: {path}")
 
     storage_options = rosbag2_py.StorageOptions(
         uri=path,
@@ -94,9 +98,11 @@ def sync_base_targets(path, b_topic, t_topics, times_file, gen_csv):
         dir_path = os.path.dirname(times_file)
         if dir_path != "":
             os.makedirs(dir_path, exist_ok=True)
-        
+
+        t0 = base_times[0][0]
+
         # Create an array with the converted timestamps
-        lines = [f"{(time_ns / 1_000_000_000.0):.9f}" for time_ns, _ in base_times]
+        lines = [f"{((time_ns - t0) / 1_000_000_000.0):.9f}" for time_ns, _ in base_times]
 
         # Join all the timestamps using \n as separator
         with open(times_file, "w") as f:

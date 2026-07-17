@@ -4,6 +4,8 @@ import numpy as np
 import rosbag2_py
 from sensor_msgs.msg import CameraInfo
 from rclpy.serialization import deserialize_message
+import os
+import sys
 
 def extract_K_from_camera_info(msg_bytes):
     """Deserialize CameraInfo and extract K."""
@@ -13,10 +15,14 @@ def extract_K_from_camera_info(msg_bytes):
 
 def export_intrinsics(bag_path, topic, output_yaml):
     # Configure reader
-    if bag_path.endswith('.mcap'):
-        storage_id = 'mcap'
+    if os.path.isdir(bag_path):
+        files = os.listdir(bag_path)
+        if any(f.endswith('.mcap') for f in files):
+            storage_id = 'mcap'
+        else:
+            storage_id = 'sqlite3'
     else:
-        storage_id = 'sqlite3'
+        sys.exit(f"Error: Invalid path, not a directory: {bag_path}")
 
     storage_options = rosbag2_py.StorageOptions(uri=bag_path, storage_id=storage_id)
     converter_options = rosbag2_py.ConverterOptions(
