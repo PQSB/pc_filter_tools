@@ -289,7 +289,14 @@ python prepare_fov_filter_calib_file.py \
 
 # Requirements
 
-The repository contains utilities based on Python together with ROS-related tools and third-party frameworks such as OpenPCDet and 3D-MOOD. Please refer to each component for its specific dependencies.
+Most scripts in this repository only depend on the standard Python scientific ecosystem and the ROS 2 Python libraries required to process ROS 2 bags (tested with ROS 2 Jazzy).
+
+Some components rely on external projects and therefore require their corresponding environments:
+
+3D_MOOD/: Requires the dependencies specified by the 3D-MOOD project (https://github.com/cvg/3D-MOOD).
+openPCDet/: Requires the dependencies specified by the OpenPCDet project (https://github.com/open-mmlab/OpenPCDet/).
+
+Please refer to the corresponding project documentation for installation instructions before using these scripts.
 
 ---
 
