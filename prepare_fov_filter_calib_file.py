@@ -70,7 +70,7 @@ def preprocess_data(calib_path, image_path, out_path, p_prefix, tr_prefix):
 def main():
     parser = argparse.ArgumentParser(description="Generate an optimized file for filter_cloud_by_detections_from_dataset filter_fov option")
 
-    parser.add_argument("--calib_file", type=str, required=True, help="kitti calib file path")
+    parser.add_argument("--calib_file", type=str, required=True, help="kitti format calib file path")
     parser.add_argument("--image", type=str, required=True, help="path to the image")
     parser.add_argument("--out_path", type=str, required=True, help="path to store the resulting preprocessed file")
     parser.add_argument("--tr_prefix", type=str, default="Tr:", help="Prefix of the velo2cam matrix in the calib file")
