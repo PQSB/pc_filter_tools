@@ -22,7 +22,7 @@ A collection of utilities for extracting, synchronizing, processing, and filteri
 
 ### Purpose
 
-Runs inference using the 3D-MOOD model on point cloud data.
+The script runs 3D-MOOD inference on input images to detect user-defined object classes and estimate their 3D geometry. It can export 3D detections, reconstructed point clouds, estimated depth maps, and annotated images with projected 3D bounding boxes. Optionally, detections can also be exported in the LiDAR coordinate frame by providing a lidar2cam calibration file.
 
 ### Usage
 
@@ -33,9 +33,15 @@ python 3D_MOOD/mood_inference.py [OPTIONS]
 ### Example
 
 ```bash
-python 3D_MOOD/mood_inference.py \
-    --input data/sample.pcd \
-    --output results/
+python mood_inference.py \
+    --input data/images \
+    --intrinsics calibration/camera_intrinsics.yaml \
+    --lidar_ref calibration/lidar2cam.txt \
+    --out_detections results/detections \
+    --out_pointcloud results/pointclouds \
+    --out_images results/annotated_images \
+    --depth_images results/depth_maps \
+    --prompt "chair.table.person"
 ```
 
 ---
