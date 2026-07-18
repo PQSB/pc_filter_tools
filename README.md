@@ -44,12 +44,6 @@ Runs 3D-MOOD inference on input images to detect user-defined object classes and
 
 - Input images annotated with projected 3D bounding boxes.
 
-### Usage
-
-```bash
-python 3D_MOOD/mood_inference.py [OPTIONS]
-```
-
 ### Example
 
 ```bash
@@ -204,12 +198,6 @@ Converts KITTI dataset sequences ground truth into ROS 2 compatible format. The 
 
 - Converted odometry file in ROS 2 coordinates.
 
-#### Usage
-
-```bash
-python kitti2ros.py [OPTIONS]
-```
-
 #### Example
 
 ```bash
@@ -218,41 +206,54 @@ python kitti2ros.py \
     00_ros.txt
 ```
 
-
 ### `gen_odometry_poses.sh`
 
 Automates the generation of estimated odometry trajectories for the experimental evaluation.
 
-
 ### `gen_evo_results_csv.sh`
 
-Automates the evaluation of all experiments using the **evo** toolkit and generates a CSV file containing the resulting performance metrics.
-
+Automates the evaluation of all experiments using the **evo** toolkit and fills the CSV file provided containing the resulting performance metrics (using *gen_odometry_poses.sh*)
 
 ### `write_evo_results.py`
 
 Parses the evaluation results produced by **evo** (`evo_ape` and `evo_rpe`) and updates the corresponding CSV file with the metrics associated with each experiment.
 
+### results_analysis/
+
+Contains the experimental results and the notebook used to analyze and visualize them.
+
 ---
 
-## openPCDet/open_pc_det_inference.py
+## openPCDet
 
-### Purpose
+This directory contains the configuration files and utilities required to run inference with the OpenPCDet framework.
 
-Runs inference using OpenPCDet on LiDAR point clouds.
+### open_pc_det_inference.py
 
-### Usage
+Runs inference on LiDAR point clouds using a pretrained OpenPCDet model and exports the resulting 3D object detections.
 
-```bash
-python open_pc_det_inference.py [OPTIONS]
-```
+#### Inputs
 
-### Example
+- **cfg_file:** OpenPCDet model configuration file.
+
+- **data_path:** Path to a point cloud file or a directory containing multiple point cloud files.
+
+- **ckpt:** Pretrained model checkpoint.
+
+- **ext (optional):** Extension of the input point cloud files (default: .bin).
+
+#### Outputs
+
+- Directory containing one text file per input point cloud with the exported 3D detections.
+
+#### Example
 
 ```bash
 python open_pc_det_inference.py \
-    --cfg_file configs/example.yaml \
-    --data_path data/
+    --cfg_file configs/kitti_models/second.yaml \
+    --data_path dataset/velodyne \
+    --ckpt checkpoints/second.pth \
+    --out_det detections/
 ```
 
 ---
