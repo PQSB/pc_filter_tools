@@ -80,11 +80,11 @@ This directory contains the preprocessing utilities used to convert raw ROS 2 ba
 Synchronizes multiple ROS 2 topics recorded at different frequencies using a reference topic (typically the LiDAR stream). The script generates a CSV file containing the temporal correspondences between the selected topics, as well as a `times.txt` file with the timestamps of the reference topic for later stages of the pipeline.
 
 #### Inputs
-- bag_path: Input ROS 2 bag.
+- **bag_path:** Input ROS 2 bag.
 
-- base_topic: Reference topic used to synchronize the remaining topics (typically the slowest sensor).
+- **base_topic:** Reference topic used to synchronize the remaining topics (typically the slowest sensor).
 
-- target_topics: List of topics to synchronize with the reference topic.
+- **target_topics:** List of topics to synchronize with the reference topic.
 
 ### Outputs
 - Synchronization CSV relating the matched messages across topics.
@@ -117,15 +117,25 @@ python3 gen_sync_rosbag.py \
 
 ### `export_intrinsics.py`
 
-Extracts the intrinsic camera calibration parameters from a ROS 2 bag and stores them in a YAML configuration file. This calibration can later be used to reconstruct virtual point clouds from depth images or for other camera-based processing tasks.
+Extracts the intrinsic camera calibration parameters from a ROS 2 bag topic and stores them in a YAML configuration file. The exported calibration can be used by other scripts, such as *export_topic_msgs.py*, to reconstruct point clouds from depth images.
+
+#### Inputs
+- **bag:** Input ROS bag.
+
+- **topic:** Camera information topic (sensor_msgs/CameraInfo) containing the intrinsic calibration.
+
+- **output:** Output YAML file.
+
+#### Outputs
+- YAML file containing the camera intrinsic matrix.
 
 **Example**
 
 ```bash
 python3 export_intrinsics.py \
     --bag /input_rosbag \
-    --topic /camera_info_topic \
-    --output matrix.yaml
+    --topic /camera/camera_info \
+    --output camera_intrinsics.yaml
 ```
 
 ### `export_topic_msgs.py`
