@@ -1,6 +1,6 @@
 # pc_filter_tools
 
-A collection of utilities for extracting, synchronizing, processing, and filtering LiDAR point cloud data. The repository includes scripts for input data preparation, ROS 2 bag processing, 3D object detection, field-of-view filtering, and experimental evaluation. These tools are intended to support the software provided by <https://github.com/PQSB/pc_filter>
+A collection of utilities for extracting, synchronizing, processing, and filtering LiDAR point cloud data. The repository includes scripts for input data preparation, ROS 2 bag processing, 3D object detection, field-of-view filtering, and experimental evaluation. These tools are intended to support the software provided by [`pc_filter`](https://github.com/PQSB/pc_filter).
 
 ---
 
@@ -274,7 +274,7 @@ Generates a preprocessed calibration file required by the field-of-view (FoV) fi
 
 ### Outputs
 
-- Calibration file in the format expected by the pc_filter FoV filter of <https://github.com/PQSB/pc_filter>.
+- Calibration file in the format expected by the [`pc_filter`](https://github.com/PQSB/pc_filter) FoV filter.
 
 ### Example
 
@@ -293,8 +293,9 @@ Most scripts in this repository only depend on the standard Python scientific ec
 
 Some components rely on external projects and therefore require their corresponding environments:
 
-3D_MOOD/: Requires the dependencies specified by the 3D-MOOD project (https://github.com/cvg/3D-MOOD).
-openPCDet/: Requires the dependencies specified by the OpenPCDet project (https://github.com/open-mmlab/OpenPCDet/).
+- **3D_MOOD/:** Requires the dependencies specified by the [`3D-MOOD project`](https://github.com/cvg/3D-MOOD/).
+
+- **openPCDet/:** Requires the dependencies specified by the [`OpenPCDet project`](https://github.com/open-mmlab/OpenPCDet/).
 
 Please refer to the corresponding project documentation for installation instructions before using these scripts.
 
