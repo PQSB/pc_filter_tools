@@ -27,8 +27,11 @@ Runs 3D-MOOD inference on input images to detect user-defined object classes and
 #### Inputs
 
 - **Input images (`--input`)**: Directory containing the images to be processed.
+
 - **Camera intrinsics (`--intrinsics`)**: Camera calibration file in **KITTI calibration** or **YAML** (generated with *export_intrinsics.py*) format containing the intrinsic parameters required by 3D-MOOD.
+
 - **LiDAR reference (`--lidar_ref`, optional)**: Path to a KITTI-style calibration file containing the `Tr:` transformation matrix (LiDAR-to-camera). When provided, detections are additionally exported in the LiDAR coordinate frame. This option requires `--out_detections`.
+
 - **Prompt (`--prompt`, optional)**: Dot-separated list of object classes to detect (e.g., `chair.table.person`).
 
 #### Outputs
