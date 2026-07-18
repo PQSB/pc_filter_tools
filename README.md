@@ -22,7 +22,21 @@ A collection of utilities for extracting, synchronizing, processing, and filteri
 
 ### Purpose
 
-The script runs 3D-MOOD inference on input images to detect user-defined object classes and estimate their 3D geometry. It can export 3D detections, reconstructed point clouds, estimated depth maps, and annotated images with projected 3D bounding boxes. Optionally, detections can also be exported in the LiDAR coordinate frame by providing a lidar2cam calibration file.
+Runs 3D-MOOD inference on input images to detect user-defined object classes and estimate their 3D geometry. The script can export 3D detections, reconstructed point clouds, estimated depth maps, and the input images annotated with the projected 3D bounding boxes. Optionally, detections can also be exported in the LiDAR coordinate frame by providing a `lidar2cam` calibration file.
+
+#### Inputs
+
+- **Input images (`--input`)**: Directory containing the images to be processed.
+- **Camera intrinsics (`--intrinsics`)**: Camera calibration file in **KITTI calibration** or **YAML** (generated with *export_intrinsics.py*) format containing the intrinsic parameters required by 3D-MOOD.
+- **LiDAR reference (`--lidar_ref`, optional)**: Path to a KITTI-style calibration file containing the `Tr:` transformation matrix (LiDAR-to-camera). When provided, detections are additionally exported in the LiDAR coordinate frame. This option requires `--out_detections`.
+- **Prompt (`--prompt`, optional)**: Dot-separated list of object classes to detect (e.g., `chair.table.person`).
+
+#### Outputs
+
+- 3D detections.
+- Reconstructed point clouds.
+- Estimated depth maps.
+- Input images annotated with projected 3D bounding boxes.
 
 ### Usage
 
