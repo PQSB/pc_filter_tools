@@ -161,7 +161,7 @@ def get_3d_mood_swin_base(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Export the detections and point clouds resulting from the inference using 3D-MOOD")
     parser.add_argument("--input", type=str, required=True, help="Path to the input images directory")
-    parser.add_argument("--intrinsics", type=str, required=True, help="Path to the camera intrinsics file (kitti calib file format of yaml)")
+    parser.add_argument("--intrinsics", type=str, required=True, help="Path to the camera intrinsics file (kitti calib file format or yaml)")
     parser.add_argument("--out_detections", type=str, help="Path in which to store the detections")
     parser.add_argument("--out_pointcloud", type=str, help="Path in which to store the generated point clouds")
     parser.add_argument("--out_images", type=str, help="Path in which to store the images with the 3D bounding boxes")
