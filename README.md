@@ -9,8 +9,8 @@ A collection of utilities for extracting, synchronizing, processing, and filteri
 | Directory / File                   | Description                                                                              |
 | ---------------------------------- | ---------------------------------------------------------------------------------------- |
 | `3D_MOOD/`                         | Utilities for running inference with the 3D-MOOD model and related helper functions.     |
-| `data_extraction_scripts/`         | Scripts for extracting and synchronizing data from ROS 2 bags.                             |
-| `experiment/`                      | Utilities for running experiments, converting datasets, and evaluating odometry results. |
+| `data_extraction_scripts/`         | Scripts for extracting and synchronizing data from ROS 2 bags.                           |
+| `experiment/`                      | Experimental resources, including scripts, results, and evaluation tools.                |
 | `openPCDet/`                       | Configuration files and inference scripts for OpenPCDet.                                 |
 | `prepare_fov_filter_calib_file.py` | Utility to generate calibration files for field-of-view filtering.                       |
 
@@ -188,59 +188,50 @@ python export_topic_msgs.py \
 
 ---
 
-## experiment/kitti2ros.py
+## experiment
 
-### Purpose
+Experimental assets, including scripts for dataset conversion, experiment execution, result generation, and performance evaluation and analysis.
 
-Converts KITTI dataset sequences into ROS-compatible format.
+### kitti2ros.py
 
-### Usage
+Converts KITTI dataset sequences ground truth into ROS 2 compatible format. The script transforms the pose sequence while preserving the original trajectory, allowing KITTI ground-truth files to be used directly with ROS-based evaluation tools.
+
+#### Inputs
+
+- **`input_file`**: KITTI odometry ground-truth file (e.g., `00.txt`).
+
+#### Outputs
+
+- Converted odometry file in ROS 2 coordinates.
+
+#### Usage
 
 ```bash
 python kitti2ros.py [OPTIONS]
 ```
 
----
-
-## experiment/write_evo_results_csv.py
-
-### Purpose
-
-Processes evaluation results and exports them as CSV files for further analysis.
-
-### Usage
+#### Example
 
 ```bash
-python write_evo_results_csv.py [OPTIONS]
+python kitti2ros.py \
+    00.txt \
+    00_ros.txt
 ```
 
----
 
-## experiment/gen_evo_results_csv.sh
+### `gen_odometry_poses.sh`
 
-### Purpose
+Automates the generation of estimated odometry trajectories for the experimental evaluation.
 
-Shell script that automates the generation of evaluation result summaries.
 
-### Usage
+### `gen_evo_results_csv.sh`
 
-```bash
-./gen_evo_results_csv.sh
-```
+Automates the evaluation of all experiments using the **evo** toolkit and generates a CSV file containing the resulting performance metrics.
 
----
 
-## experiment/gen_odometry_poses.sh
+### `write_evo_results.py`
 
-### Purpose
-
-Generates odometry pose files required for trajectory evaluation.
-
-### Usage
-
-```bash
-./gen_odometry_poses.sh
-```
+Parses the evaluation results produced by **evo** (`evo_ape` and `evo_rpe`) and updates the corresponding CSV file with the metrics associated with each experiment.
 
 ---
 
