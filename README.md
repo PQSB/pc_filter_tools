@@ -37,8 +37,11 @@ Runs 3D-MOOD inference on input images to detect user-defined object classes and
 #### Outputs
 
 - 3D detections.
+
 - Reconstructed point clouds.
+
 - Estimated depth maps.
+
 - Input images annotated with projected 3D bounding boxes.
 
 ### Usage
@@ -68,13 +71,25 @@ python mood_inference.py \
 This directory contains the preprocessing utilities used to convert raw ROS 2 bag recordings into synchronized input data ready for point cloud filtering and evaluation. The scripts can be executed independently, although they are typically used as part of the following workflow:
 
 1. Synchronize the selected sensor topics.
-2. Generate a synchronized ROS bag.
+2. Generate a synchronized ROS 2 bag.
 3. Extract the camera intrinsic calibration parameters.
-4. Export the required sensor data into a dataset-friendly format.
+4. Export the required sensor data into the required format.
 
 ### `sync_topics.py`
 
-Synchronizes multiple ROS topics recorded at different frequencies using a reference topic (typically the LiDAR stream). The script generates a CSV file containing the temporal correspondences between the selected topics, as well as a `times.txt` file with the timestamps of the reference topic for later stages of the pipeline.
+Synchronizes multiple ROS 2 topics recorded at different frequencies using a reference topic (typically the LiDAR stream). The script generates a CSV file containing the temporal correspondences between the selected topics, as well as a `times.txt` file with the timestamps of the reference topic for later stages of the pipeline.
+
+#### Inputs
+- bag_path: Input ROS 2 bag.
+
+- base_topic: Reference topic used to synchronize the remaining topics (typically the slowest sensor).
+
+- target_topics: List of topics to synchronize with the reference topic.
+
+### Outputs
+- Synchronization CSV relating the matched messages across topics.
+
+- times.txt file containing the timestamps of the reference topic.
 
 **Example**
 
@@ -82,7 +97,7 @@ Synchronizes multiple ROS topics recorded at different frequencies using a refer
 python3 sync_topics.py \
     --bag_path /input_rosbag \
     --base_topic /lidar_topic \
-    --target_topics /color/image \
+    --target_topics /camera/image /camera/depth \
     --out_times times.txt \
     --out_sync_file sync.csv
 ```
