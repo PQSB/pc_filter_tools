@@ -190,7 +190,7 @@ def write_pairs(pairs, out_file, b_topic, t_topics):
     print(f"Pairs exported to {os.path.abspath(out_file)}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Sync a list of target topics with a base topic")
+    parser = argparse.ArgumentParser(description="Sync a list of target topics with a base topic and export a KITTI format base topic times file")
     parser.add_argument("--bag_path", type=str, required=True, help="Rosbag path")
     parser.add_argument("--base_topic", type=str, required=True, help="Slowest topic (used as reference to sync the other one)")
     parser.add_argument("--target_topics", type=str, nargs="+", help="Topics to be synchronized with the base one (/topic1 /topic2 ...)")
