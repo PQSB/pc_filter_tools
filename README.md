@@ -260,14 +260,29 @@ python open_pc_det_inference.py \
 
 ## prepare_fov_filter_calib_file.py
 
-### Purpose
+Generates a preprocessed calibration file required by the field-of-view (FoV) filtering stage. The script reads the camera projection matrix and the LiDAR-to-camera transformation from a KITTI calibration file together with an input image, producing an optimized calibration file for the filtering pipeline.
 
-Generates calibration files required for field-of-view filtering of point cloud data.
+### Inputs
 
-### Usage
+- **calib_file:** KITTI calibration file.
+
+- **image:** Reference image used to determine the image dimensions.
+
+- **tr_prefix (optional):** Prefix identifying the LiDAR-to-camera transformation in the calibration file (default: Tr:).
+
+- **p_prefix (optional):** Prefix identifying the camera projection matrix in the calibration file (default: P2:).
+
+### Outputs
+
+- Calibration file in the format expected by the pc_filter FoV filter of <https://github.com/PQSB/pc_filter>.
+
+### Example
 
 ```bash
-python prepare_fov_filter_calib_file.py [OPTIONS]
+python prepare_fov_filter_calib_file.py \
+    --calib_file calib.txt \
+    --image image_2/000000.png \
+    --out_path fov_calib.txt
 ```
 
 ---
